@@ -1,0 +1,89 @@
+local w,h = 26,20
+local dev = true --Tool for developers/modders
+if(not dev and not pocket) then
+  w,h = term.getSize()
+end
+friends = {
+  "BlueBird"
+}
+
+chat = {
+  say = function(message,method)
+    method.out(message)
+  end
+}
+
+wrap = {
+  main = function(method)
+    out = {}
+    out.say = method.chat
+  end,
+  chatbox = function(method)
+    out = {}
+    out.say = method.say
+  end
+}
+
+tasks = {
+  tasks = {},
+  add = function(func,name)
+    tasks[#tasks + 1] = {
+      coroutine.create(func),
+      name
+    }
+  end,
+  remove = function(name)
+    for i=1,#tasks.tasks do
+      if(tasks.tasks[i][2] == name) then
+        table.remove(tasks.tasks[i])
+      end
+    end
+  end,
+  runOnce = function()
+    event = {os.pullEvent()}
+    for i=1,#tasks.tasks do
+      task = tasks.tasks[i][1]
+      coroutine.resume(task,unpack(events))
+    end
+  end
+}
+
+function showFriendsList()
+  for X=1,w/2-3 do
+    for Y=1,h do
+      term.setCursorPos(X,Y)
+      term.setBackgroundColor(colors.lightGray)
+      write(" ")
+    end
+  end
+  
+  for i=1,#friends do
+    term.setCursorPos(1,i + 1)
+    term.setTextColor(colors.yellow)
+    term.setBackgroundColor(colors.lightGray)
+    write(friends[i])
+  end
+
+  term.setBackgroundColor(colors.gray)
+  term.setTextColor(colors.white)
+  term.setCursorPos(1,1)
+  write("Friends  ")
+end
+
+function drawDEV()
+  if(dev) then
+    for X=w + 1,w + 1 do
+      for Y=1,h do
+        term.setCursorPos(X,Y)
+        term.setBackgroundColor(colors.red)
+        term.setTextColor(colors.orange)
+        write("|")
+      end
+    end
+  end
+end
+
+showFriendsList()
+drawDEV()
+sleep(0.5)
+os.pullEvent()
