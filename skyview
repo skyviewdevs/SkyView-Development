@@ -1,5 +1,14 @@
 local w,h = term.getSize()
 local dev = true --Tool for developers/modders
+local msgWindow = window.create(
+  term.current(),
+  w/3+1,
+  1,
+  w-w/3,
+  h
+)
+
+local mW,mH = msgWindow.getSize()
 
 details = {
   ["ArchTyler"] = {
@@ -64,34 +73,20 @@ function NYI()
 end
 
 function drawChat(messages,scroll)
-  show = {}
-  startInt = scroll
-  endInt = startInt + (h - 1)
-  
-  for X=w/3+1,w do
-    for Y=1,h-1 do
-      term.setCursorPos(X,Y)
-      term.setBackgroundColor(colors.white)
-      write(" ")
-    end
+  toShow = {}
+  for i=scroll,mH + scroll do
+    toShow[#toShow + 1] = messages[i]
   end
-  
-  for i=startInt,endInt do
-    if(messages[i]) then
-      show[#show + 1] = messages[i]
-    end
-  end
-  for i=1,#show do
-    term.setCursorPos(w/3+1,i)
-    term.setTextColor(colors.yellow)
-    write(show[i].user..": ")
-    term.setTextColor(colors.green)
-    write(show[i].message)
-  end
-  term.setBackgroundColor(colors.gray)
-  for X=w/3+1,w+1 do
-    term.setCursorPos(X,h)
-    write(" ")
+  msgWindow.setBackgroundColor(colors.white)
+  msgWindow.clear()
+  msgWindow.setCursorPos(1,mH)
+  msgWindow.setBackgroundColor(colors.gray)
+  msgWindow.clearLine()
+  msgWindow.setBackgroundColor(colors.white)
+  msgWindow.setCursorPos(1,1)
+  for i=1,#toShow do
+    msgWindow.setTextColor(colors.purple)
+    msgWindow.write(toShow[i].user..": "..toShow[i].message.."\n")
   end
 end
 
@@ -201,6 +196,7 @@ function handleChat()
         if(X >=w/2-3+1 and Y==h and globals.settings == false) then
           term.setCursorPos(w/3+1,h)
           message = ""
+          term.setTextColor(colors.white)
           message = read()
           toSend = {}
           toSend.user = username
