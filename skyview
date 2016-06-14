@@ -1,11 +1,14 @@
-local w,h = 26,20
+local w,h = term.getSize()
 local dev = true --Tool for developers/modders
-if(not dev and not pocket) then
-  w,h = term.getSize()
-end
+
 friends = {
-  "BlueBird"
+  "ArchTyler"
 }
+
+username = "bluebird173"
+
+messages = {}
+scroll = 1
 
 chat = {
   say = function(message,method)
@@ -13,43 +16,47 @@ chat = {
   end
 }
 
-wrap = {
-  main = function(method)
-    out = {}
-    out.say = method.chat
-  end,
-  chatbox = function(method)
-    out = {}
-    out.say = method.say
-  end
-}
+coroutines = {}
 
-tasks = {
-  tasks = {},
-  add = function(func,name)
-    tasks[#tasks + 1] = {
-      coroutine.create(func),
-      name
-    }
-  end,
-  remove = function(name)
-    for i=1,#tasks.tasks do
-      if(tasks.tasks[i][2] == name) then
-        table.remove(tasks.tasks[i])
-      end
-    end
-  end,
-  runOnce = function()
-    event = {os.pullEvent()}
-    for i=1,#tasks.tasks do
-      task = tasks.tasks[i][1]
-      coroutine.resume(task,unpack(events))
+function NYI()
+  term.setBackgroundColor(colors.gray)
+  term.clear()
+  term.setCursorPos(1,h/2)
+  term.setTextColor(colors.white)
+  write("Not yet implemented.\nPress any key to continue")
+  sleep(0.5)
+  os.pullEvent()
+end
+
+function drawChat(messages,scroll)
+  show = {}
+  startInt = scroll
+  endInt = startInt + (h - 1)
+  for i=startInt,endInt do
+    if(messages[i]) then
+      show[#show + 1] = messages[i]
     end
   end
-}
+  for i=1,#show do
+    term.setCursorPos(w/3+1,i)
+    term.setTextColor(colors.yellow)
+    write(show[i].user..": ")
+    term.setTextColor(colors.green)
+    write(show[i].message)
+  end
+  term.setCursorPos(w-3,h-1)
+  term.setBackgroundColor(colors.lime)
+  term.setTextColor(colors.green)
+  write("Send")
+  term.setBackgroundColor(colors.gray)
+  for X=w/3+1,w+1 do
+    term.setCursorPos(X,h)
+    write(" ")
+  end
+end
 
 function showFriendsList()
-  for X=1,w/2-3 do
+  for X=1,w/3 do
     for Y=1,h do
       term.setCursorPos(X,Y)
       term.setBackgroundColor(colors.lightGray)
@@ -59,6 +66,8 @@ function showFriendsList()
   
   for i=1,#friends do
     term.setCursorPos(1,i + 1)
+    term.setBackgroundColor(colors.lime)
+    write(" ")
     term.setTextColor(colors.yellow)
     term.setBackgroundColor(colors.lightGray)
     write(friends[i])
@@ -67,7 +76,57 @@ function showFriendsList()
   term.setBackgroundColor(colors.gray)
   term.setTextColor(colors.white)
   term.setCursorPos(1,1)
-  write("Friends  ")
+  write("Friends")
+end
+
+function handleChat()
+  scroll = 1
+  messages = {{user = "Tips",message="Test!"}}
+  while true do
+    local event, p1, p2, p3 = os.pullEvent()
+      if(event == "mouse_click") then
+        click,X,Y = p1,p2,p3
+        if(X >=w/2-3+1 and Y==h) then
+          term.setCursorPos(w/3+1,h)
+          message = ""
+          message = read()
+          toSend = {}
+          toSend.user = username
+          toSend.message = message
+          messages[#messages + 1] = toSend
+          term.setBackgroundColor(colors.black)
+          term.clear()
+          showFriendsList()
+          drawChat(messages,scroll)
+        end
+      elseif(event == "mouse_scroll") then
+        direction = p1
+        if(direction == -1) then
+          scroll = scroll - 1
+          if(scroll < 1) then scroll = 1 end
+        elseif(direction == 1) then
+          scroll = scroll + 1
+        end
+        term.setBackgroundColor(colors.black)
+        term.clear()
+        drawChat(messages,scroll)
+        showFriendsList()
+      end
+  end
+end
+
+function handleFriendsList()
+  while true do
+    local event, p1, p2, p3 = os.pullEvent()
+      if(event == "mouse_click") then
+        click,X,Y = p1,p2,p3 
+        if(X == 1 and Y >=2 and Y <=#friends + 1) then
+          NYI()
+          showFriendList()
+          showMessages(messages,scroll)
+        end
+      end
+  end
 end
 
 function drawDEV()
@@ -84,6 +143,14 @@ function drawDEV()
 end
 
 showFriendsList()
-drawDEV()
-sleep(0.5)
-os.pullEvent()
+
+handleFriendsList = coroutine.create(handleFriendsList)
+handleChat = coroutine.create(handleChat)
+
+coroutine.resume(handleChat)
+coroutine.resume(handleFriendsList)
+while true do
+  events = {os.pullEvent()}
+  coroutine.resume(handleFriendsList,unpack(events))
+  coroutine.resume(handleChat,unpack(events))
+end
