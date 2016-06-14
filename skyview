@@ -3,12 +3,32 @@ local dev = true --Tool for developers/modders
 
 details = {
   ["ArchTyler"] = {
-    
+    status = "online"
+  },
+  ["RandyBobandy"] = {
+    status = "online"
+  },
+  ["konlab"] = {
+    status = "online"
+  },
+  ["onlineTest"] = {
+    status = "online"
+  },
+  ["awayTest"] = {
+    status = "away"
+  },
+  ["offlineTest"] = {
+    status = "offline"
   }
 }
 
 friends = {
-  "ArchTyler"
+  "ArchTyler",
+  "RandyBobandy",
+  "konlab",
+  "onlineTest",
+  "awayTest",
+  "offlineTest"
 }
 
 username = "bluebird173"
@@ -20,6 +40,10 @@ chat = {
   say = function(message,method)
     method.out(message)
   end
+}
+
+globals = {
+  settings = false
 }
 
 coroutines = {}
@@ -92,6 +116,7 @@ function displayFriendDetails(friend)
 end
 
 function Settings()
+  globals.settings = true
   local function draw()
   term.setBackgroundColor(colors.gray)
   term.clear()
@@ -129,6 +154,7 @@ function Settings()
       end
       draw()
   end
+  globals.settings = false
 end
 
 function showFriendsList()
@@ -142,7 +168,14 @@ function showFriendsList()
   
   for i=1,#friends do
     term.setCursorPos(1,i + 1)
-    term.setBackgroundColor(colors.lime)
+    status = details[friends[i]].status
+    if(status == "online") then
+      term.setBackgroundColor(colors.lime)
+    elseif(status == "away") then
+      term.setBackgroundColor(colors.orange)
+    elseif(status == "offline") then
+      term.setBackgroundColor(colors.red)
+    end
     write(" ")
     term.setTextColor(colors.yellow)
     term.setBackgroundColor(colors.lightGray)
@@ -161,12 +194,11 @@ end
 
 function handleChat()
   scroll = 1
-  messages = {{user = "Tips",message="Test!"}}
   while true do
     local event, p1, p2, p3 = os.pullEvent()
       if(event == "mouse_click") then
         click,X,Y = p1,p2,p3
-        if(X >=w/2-3+1 and Y==h) then
+        if(X >=w/2-3+1 and Y==h and globals.settings == false) then
           term.setCursorPos(w/3+1,h)
           message = ""
           message = read()
@@ -179,19 +211,20 @@ function handleChat()
           showFriendsList()
           drawChat(messages,scroll)
         end
-      elseif(event == "mouse_scroll") then
+      elseif(event == "mouse_scroll" and globals.settings == false) then
         direction = p1
         if(scroll >= 1) then
           if(direction == -1) then
             scroll = scroll - 1
+            drawChat(messages,scroll)
             if(scroll < 1) then scroll = 1 end
           elseif(direction == 1) then
             if(scroll < #messages) then
               scroll = scroll + 1
+              drawChat(messages,scroll)
             end
           end
         end
-        drawChat(messages,scroll)
       end
   end
 end
