@@ -1,15 +1,21 @@
 <?php
 require_once("db.class.php");
 
-const PASSWORD_PEPPER = "Put pepper here";
-$db = new db();
+/*
+    User interaction page for Skyview project
+    Author: Sam J Gunner
+    Copyright (C) Sam Gunner, 2016
+    Only for use within the Skyview project.
+*/
+
+//Begin functions
 
 function getRandomString($length) {
     $chars = "ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
     $str = "";
 
     for ($i = 0; $i < $length; $i++) {
-        $str .= $chars[random_int(0, 35)];
+        $str .= $chars[random_int(0, 60)];
     }
 
     return $str;
@@ -23,8 +29,18 @@ function generateSalt() {
     return getRandomString(128);
 }
 
+function getPepper($username) {
+    $db = new db();
+    $table = "users";
+    $where = "username = '$username'";
+    $result = $db->select($table, $where);
+    return $result['pepper'];
+}
+
 function login($user, $hashedPassword) {
-    $password = hash("sha256", PASSWORD_PEPPER . $hashedPassword); //Get hash of password with added pepper, salt has already been added to the original hash by the client
+    $db = new db();
+    $PASSWORD_PEPPER = getPepper($user);
+    $password = hash("sha256", $PASSWORD_PEPPER . $hashedPassword); //Get hash of password with added pepper, salt has already been added to the original hash by the client
     $where = "username = '$user'";
     $table = "users";
 
@@ -34,7 +50,7 @@ function login($user, $hashedPassword) {
         $uniqueKey = generateKey();
         $table = "loginKeys";
         $data = array(
-            "loginkey" => $uniqueKey,
+            "loginKey" => $uniqueKey,
             "date" => time()
         );
         $where = "id = '$userid'";
@@ -49,16 +65,18 @@ function login($user, $hashedPassword) {
     }
 }
 
-function register($username, $password, $email) {
-    $salt = generateSalt();
-    $passwordTmp = hash("sha256", $password . $salt);
-    $passwordTmp = hash("sha256", PASSWORD_PEPPER . $passwordTmp);
+function register($username, $password, $email, $salt) {
+    $PASSWORD_PEPPER = generateSalt();
 
-    $data = (
+    $db = new db();
+    $passwordTmp = hash("sha256", $PASSWORD_PEPPER . $password);
+
+    $data = array(
         "username" => $username,
         "email" => $email,
         "hash" => $passwordTmp,
         "salt" => $salt,
+        "pepper" => $PASSWORD_PEPPER,
         "joinDate" => time()
     );
 
@@ -82,6 +100,8 @@ function register($username, $password, $email) {
             "key" => $loginKey,
             "userID" => $userID
         );
+
+        return $arr;
     } else {
         $arr = array(
             "success" => false,
@@ -89,4 +109,75 @@ function register($username, $password, $email) {
         );
         return $arr;
     }
+}
+
+function getSalt($username) {
+    $db = new db();
+    $table = "users";
+    $where = "username = '$username'";
+
+    $results = $db->select($table, $where);
+    return $results["salt"];
+}
+
+//Begin $_GET handling
+if (isset($_GET['mode'])) {
+    $mode = $_GET['mode'];
+
+    switch($mode) {
+        case "login":
+            if (isset($_POST['username']) && isset($_POST['password'])) {
+                $username = $_GET['username'];
+                $hashedPassword = $_GET['password'];
+                $arr = login($username, $hashedPassword);
+                echo json_encode($arr);
+            } else {
+                $arr = array(
+                    "success" => false,
+                    "message" => "Required parameters not set"
+                );
+                echo json_encode($arr);
+            }
+            break;
+
+        case "register":
+            if (isset($_POST['username']) && isset($_POST['salt']) && isset($_POST['password']) && isset($_POST['email'])) {
+                $username = $_POST['username'];
+                $salt = $_POST['salt'];
+                $hashedPassword = $_POST['password'];
+                $email = $_POST['email'];
+
+                $arr = register($username, $password, $email, $salt);
+                echo json_encode($arr);
+            } else {
+                $arr = array(
+                    "success" => false,
+                    "message" => "Required parameters not set"
+                );
+                echo json_encode($arr);
+            }
+            break;
+
+        case "getSalt":
+            $arr = array(
+                "success" => true,
+                "salt" => generateSalt()
+            );
+            echo json_encode($arr);
+            break;
+
+        default:
+            $arr = array(
+                "success" => false,
+                "message" => "Invalid operating mode"
+            );
+            echo json_encode($arr);
+            break;
+    }
+} else {
+    $arr = array(
+        "success" => false,
+        "message" => "Operating mode not set"
+    );
+    echo json_encode($arr);
 }

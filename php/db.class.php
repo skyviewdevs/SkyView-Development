@@ -1,10 +1,18 @@
 <?php
+
+/*
+    Database class for skyview project
+    Author: Sam J Gunner
+    Copyright (C) Sam J Gunner, 2016
+    Only for use within the Skyview project.
+*/
+
     class db {
         //Declare variables
         protected $db_address = "localhost";
-        protected $db_username = "testUser";
-        protected $db_password = "testpass";
-        protected $db_name = "skyview";
+        protected $db_username = "admin_skyview";
+        protected $db_password = "2e2I0yfTcl";
+        protected $db_name = "admin_skyview";
         public $conn;
 
         public function __construct()
