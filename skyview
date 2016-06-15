@@ -8,6 +8,9 @@ local msgWindow = window.create(
   h
 )
 
+utils = {}
+os.loadAPI("skyview/wordwrap")
+
 local mW,mH = msgWindow.getSize()
 
 details = {
@@ -75,7 +78,17 @@ end
 function drawChat(messages,scroll)
   toShow = {}
   for i=scroll,mH + scroll do
-    toShow[#toShow + 1] = messages[i]
+    if(messages[i]) then
+      wrapped = wordwrap.getWordWrappedTable(messages[i].message,mW/2)
+      for a=1,#wrapped do
+        inject = wrapped[a]
+        temp = inject
+        inject = {}
+        inject.message = temp
+        inject.user = messages[i].user
+        table.insert(toShow,inject)
+      end
+    end
   end
   msgWindow.setBackgroundColor(colors.white)
   msgWindow.clear()
@@ -85,6 +98,7 @@ function drawChat(messages,scroll)
   msgWindow.setBackgroundColor(colors.white)
   msgWindow.setCursorPos(1,1)
   for i=1,#toShow do
+    msgWindow.setCursorPos(1,i)
     msgWindow.setTextColor(colors.purple)
     msgWindow.write(toShow[i].user..": "..toShow[i].message.."\n")
   end
