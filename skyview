@@ -9,7 +9,6 @@ local msgWindow = window.create(
 )
 
 utils = {}
-os.loadAPI("skyview/wordwrap")
 
 local mW,mH = msgWindow.getSize()
 
@@ -65,6 +64,41 @@ function cWrite(text,Y)
   write(text)
 end
 
+function getWordWrappedTable(rawText, lineLength)
+    local endTable = {""}
+    local remainingLength = 0
+    local sentenceTable = {}
+    for text in rawText:gmatch("%S+") do-- Split sentences up by spaces.
+        table.insert(sentenceTable, text)
+    end
+    local lineNumber = 1
+    local currentLineText = ""
+    local tempString = ""
+
+    while true do
+        currentLineText = endTable[lineNumber]
+        remainingLength = lineLength - #currentLineText --See how much space is left
+        if sentenceTable[1] ~= nil then
+            if remainingLength >= #sentenceTable[1] then -- It can fit on the current row.
+                if endTable[lineNumber] == "" then
+                    endTable[lineNumber] = sentenceTable[1]
+                else
+                    endTable[lineNumber] = endTable[lineNumber] .. " " .. sentenceTable[1]
+                end
+                table.remove(sentenceTable, 1)
+            else
+                lineNumber = lineNumber + 1
+                endTable[lineNumber] = sentenceTable[1]
+                table.remove(sentenceTable, 1)
+            end
+        else -- Time to exit; the sentences have been split up.
+            break
+        end
+    end
+    
+    return endTable
+end
+
 function NYI()
   term.setBackgroundColor(colors.gray)
   term.clear()
@@ -79,7 +113,7 @@ function drawChat(messages,scroll)
   toShow = {}
   for i=scroll,mH + scroll do
     if(messages[i]) then
-      wrapped = wordwrap.getWordWrappedTable(messages[i].message,mW/2)
+      wrapped = getWordWrappedTable(messages[i].message,mW/2)
       for a=1,#wrapped do
         inject = wrapped[a]
         temp = inject
@@ -100,7 +134,9 @@ function drawChat(messages,scroll)
   for i=1,#toShow do
     msgWindow.setCursorPos(1,i)
     msgWindow.setTextColor(colors.purple)
-    msgWindow.write(toShow[i].user..": "..toShow[i].message.."\n")
+    msgWindow.write(toShow[i].user..": ")
+    msgWindow.setTextColor(colors.lime)
+    msgWindow.write(toShow[i].message)
   end
 end
 
