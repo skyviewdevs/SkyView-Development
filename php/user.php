@@ -15,7 +15,7 @@ function getRandomString($length) {
     $str = "";
 
     for ($i = 0; $i < $length; $i++) {
-        $str .= $chars[random_int(0, 60)];
+        $str .= $chars[rand(0, 60)];
     }
 
     return $str;
@@ -141,7 +141,7 @@ if (isset($_GET['mode'])) {
             break;
 
         case "register":
-            if (isset($_POST['username']) && isset($_POST['salt']) && isset($_POST['password']) && isset($_POST['email'])) {
+            if (isset($_POST['username']) && isset($_POST['salt']) && isset($_POST['password'])) {
                 $username = $_POST['username'];
                 $salt = $_POST['salt'];
                 $hashedPassword = $_POST['password'];
@@ -158,12 +158,29 @@ if (isset($_GET['mode'])) {
             }
             break;
 
-        case "getSalt":
+        case "generateSalt":
             $arr = array(
                 "success" => true,
                 "salt" => generateSalt()
             );
             echo json_encode($arr);
+            break;
+
+        case "getSalt":
+            if (isset($_POST['username'])) {
+                $salt = getSalt($_POST['username']);
+                $arr = array(
+                    "success" => true,
+                    "salt" => $salt
+                );
+                echo json_encode($arr);
+            } else {
+                $arr = array(
+                    "success" => false,
+                    "message" => "Username not specified."
+                );
+                echo json_encode($arr);
+            }
             break;
 
         default:
