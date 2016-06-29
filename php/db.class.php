@@ -82,4 +82,8 @@
 
             return mysqli_num_rows($result);
         }
+
+        public function runCustomCommand($command) {
+            return $this->conn->query($command);
+        }
     }
