@@ -77,13 +77,18 @@
         }
 
         public function checkOccurrences($table, $where) {
-            $query = "SELECT * FROM $table WHERE $where";
+            $query = "SELECT * FROM $table WHERE $where;";
             $result = $this->conn->query($query);
-
             return mysqli_num_rows($result);
         }
 
         public function runCustomCommand($command) {
             return $this->conn->query($command);
+        }
+
+        public function delete($table, $where) {
+            $sql = "DELETE * FROM $table WHERE $where";
+            $this->conn->query($sql);
+            return true;
         }
     }

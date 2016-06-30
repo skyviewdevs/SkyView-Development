@@ -22,7 +22,10 @@ class user {
             );
             return $arr;
         } else { //Everything should be fine
+            $userID = user::getUserIDFromUsername($username);
+
             $table = "loginKeys";
+            $where = "id = '$userID'";
             $result = $db->select($table, $where);
 
             if ($result["loginKey"] === $uniqueKey) { //The keys are the same, it should work just fine.
@@ -57,7 +60,7 @@ class user {
         return $results["username"];
     }
 
-    public static function checkUserExists($username) {
+    public static function checkUserExistsByID($userID) {
         $db = new db();
         $tableName = "users";
         $where = "id = '$userID'";
@@ -68,9 +71,36 @@ class user {
             return false;
         }
     }
-}
+
+    public static function checkUserExists($username) {
+        $db = new db();
+        $tableName = "users";
+        $where = "`username` = '$username'";
+        $numResults = $db->checkOccurrences($tableName, $where);
+        if ($numResults === 1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+} //End of user class.
 
 class chat {
+    //Checks if a chat with a certain ID exists.
+    public static function checkChatExists($chatID) {
+        $db = new db();
+
+        $tableName = "chatList";
+        $where = "ID = '$chatID'";
+
+        $numResults = $db->checkOccurrences($tableName, $where);
+        if ($numResults === 1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     //Sends and adds a new message to the correct chat table.
     public static function sendMessage($message, $chatID, $username, $uniqueKey) {
         $db = new db();
@@ -79,7 +109,7 @@ class chat {
         if ($result["success"]) {
             $userID = user::getUserIDFromUsername($username); //Acquire user id for message record
 
-            if (this.checkChatExists($chatID)) {
+            if ($this->checkChatExists($chatID)) {
                 $tableName = "cmsg_" . $chatID; //ID of the table that stores the messages in for the chat
                 $data = array(
                     "MESSAGE" => trim($message),
@@ -112,16 +142,18 @@ class chat {
             $authorID = user::getUserIDFromUsername($authorName); //Acquire user ID
         } else {
             $arr = array("success" => false, "message" => "User does not exist!");
+            return $arr;
         }
 
-        if (!user::checkLogin($authorName, $uniqueKey)) { //Check that the credentials are correct
+        $validLogin = user::checkLogin($authorName, $uniqueKey);
+        if (!$validLogin["success"]) { //Check that the credentials are correct
             $arr = array("success" => false, "message" => "Incorrect user credentials.");
             return $arr;
         }
 
         if ($type === "single") { //between two users
             $data = array(
-                "NAME" => $chatName,
+                "NAME" => "Chat name goes here",
                 "AUTHOR" => $authorID,
                 "TYPE" => 1
             );
@@ -131,26 +163,103 @@ class chat {
             $customSQL = "CREATE TABLE csmg_$chatID (ID INT(11), MESSAGE VARCHAR(255), AUTHOR INT(11), DATE VARCHAR(255), PRIMARY KEY(ID))";
             $db->runCustomCommand($customSQL);
 
+            $nextQuery = "INSERT INTO chatMembers (MEMBER_ID, CHAT_ID) VALUES ($authorID, $chatID)";
+            $db->runCustomCommand($nextQuery);
+
+            $arr = array(
+                "success" => true,
+                "message" => "Successfully created new chat.",
+                "chatID" => $chatID
+            );
+            return $arr;
+
         } elseif ($type === "group") { //Group chat
+            $data = array(
+                "NAME" => $chatName,
+                "AUTHOR" => $authorID,
+                "TYPE" => 2
+            );
+
+            $chatID = $db->insert($data, "chatList"); //Register the chat in the table and get an ID
+
+            $customSQL = "CREATE TABLE csmg_$chatID (ID INT(11), MESSAGE VARCHAR(255), AUTHOR INT(11), DATE VARCHAR(255), PRIMARY KEY(ID))";
+            $db->runCustomCommand($customSQL);
+
+            $nextQuery = "INSERT INTO chatMembers (MEMBER_ID, CHAT_ID) VALUES ($authorID, $chatID)";
+            $db->runCustomCommand($nextQuery);
+
+            $arr = array(
+                "success" => true,
+                "message" => "Created chat successfully",
+                "chatID" => $chatID
+            );
+            return $arr;
 
         } else {
             $arr = array("success" => false, "message" => "Invalid chat type");
         }
     }
 
-    public static function checkChatExists($chatID) {
-        $db = new db();
+    //Add a user by ID to a chat by ID
+    public static function addUserIDToChatByID($authorID, $authorLoginKey, $userID, $chatID) {
+        if (user::checkLogin($authorID, $authorLoginKey) && user::checkUserExistsByID($userID)) { //Verify credentials and that the user being added exists
+            if (chat::checkChatExists($chatID)) {
+                $data = array(
+                    "MEMBER_ID" => $userID,
+                    "CHAT_ID" => $chatID
+                );
 
-        $tableName = "chatList";
-        $where = "ID = '$chatID'";
+                $db = new db();
+                $db->insert($data, "chatMembers");
 
-        $numResults = $db->checkOccurrences($tableName, $where);
-        if ($numResults === 1) {
-            return true;
+                $arr = array(
+                    "success" => true,
+                    "message" => "User added to chat successfully"
+                );
+                return $arr;
+            } else {
+                $arr = array(
+                    "success" => false,
+                    "message" => "Chat ID does not exist"
+                );
+                return $arr;
+            }
         } else {
-            return false;
+            $arr = array(
+                "success" => false,
+                "message" => "Invalid credentials."
+            );
+            return $arr;
         }
     }
-}
 
-chat::createChat("Test Chat", "testuser", "single", "uniqueKey");
+    public static function removeUserIDFromChatByID($doingID, $doingKey, $userID, $chatID) {
+        if (user::checkLogin($doingID, $doingKey) && user::checkUserExistsByID($userID)) {
+            if (chat::checkChatExists($chatID)) {
+                $where = "MEMBER_ID = '$userID'";
+                $db = new db();
+
+                $db->delete("chatMembers", $where);
+
+                $arr = array(
+                    "success" => true,
+                    "message" => "User successfully removed from chat."
+                );
+
+                return $arr;
+            } else {
+                $arr = array(
+                    "success" => false,
+                    "message" => "Chat ID does not exist"
+                );
+                return $arr;
+            }
+        } else {
+            $arr = array(
+                "success" => false,
+                "message" => "Invalid credentials."
+            );
+            return $arr;
+        }
+    }
+} //end of chat class
