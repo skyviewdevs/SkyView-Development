@@ -2,6 +2,11 @@
 
 require_once("db.class.php");
 
+/*
+    Copyright (C) 2016, Sam Gunner.
+    To be used under the Skyview project only.
+*/
+
 class user {
     public static function checkLogin($username, $uniqueKey) {
         $db = new db();
